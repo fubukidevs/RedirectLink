@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Redirecionamento</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0a;
+            color: #fff;
+            min-height: 100vh;
+        }
+
+        /* Página de Redirecionamento */
+        .redirect-page {
+            display: none;
+            height: 100vh;
+            background: #000;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .redirect-page.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top-color: #25D366;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Dashboard */
+        .dashboard {
+            display: none;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+        }
+
+        .dashboard.active {
+            display: block;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .links-count {
+            background: rgba(37, 211, 102, 0.1);
+            border: 1px solid rgba(37, 211, 102, 0.3);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            color: #25D366;
+        }
+
+        .links-section {
+            margin-top: 40px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .btn-add {
+            background: #25D366;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-add:hover {
+            background: #128C7E;
+            transform: translateY(-1px);
+        }
+
+        .links-grid {
+            display: grid;
+            gap: 15px;
+        }
+
+        .link-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 20px;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .link-card:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .link-info {
+            display: grid;
+            gap: 10px;
+        }
+
+        .link-name {
+            font-size: 16px;
+            font-weight: 500;
+            color: #fff;
+        }
+
+        .link-url {
+            font-size: 14px;
+            color: #888;
+            word-break: break-all;
+        }
+
+        .generated-link {
+            background: rgba(37, 211, 102, 0.1);
+            border: 1px solid rgba(37, 211, 102, 0.3);
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 14px;
+            color: #25D366;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .link-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-icon {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 16px;
+        }
+
+        .btn-icon:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .btn-icon.delete:hover {
+            background: rgba(255, 0, 0, 0.2);
+            border-color: rgba(255, 0, 0, 0.3);
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #1a1a1a;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 25px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 8px;
+        }
+
+        .form-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
+            padding: 12px 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #25D366;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 25px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+        }
+
+        .btn-cancel {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+
+        .btn-cancel:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .btn-save {
+            background: #25D366;
+            color: #fff;
+        }
+
+        .btn-save:hover {
+            background: #128C7E;
+        }
+
+        .copy-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            padding: 5px 12px;
+            border-radius: 5px;
+            font-size: 12px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .copy-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .empty-state p:first-child {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        .empty-state p:last-child {
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Página de Redirecionamento -->
+    <div class="redirect-page" id="redirectPage">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <!-- Dashboard -->
+    <div class="dashboard" id="dashboard">
+        <header class="header">
+            <div class="container">
+                <div class="header-content">
+                    <h1>Central de Redirecionamento</h1>
+                    <div class="links-count">
+                        <span id="activeLinksCount">0</span> links ativos
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="container">
+            <!-- Seção de Links -->
+            <div class="links-section">
+                <div class="section-header">
+                    <h2 class="section-title">Seus Links</h2>
+                    <button class="btn-add" onclick="openAddModal()">
+                        <span>+</span> Adicionar Link
+                    </button>
+                </div>
+
+                <div class="links-grid" id="linksGrid">
+                    <!-- Links serão inseridos aqui -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <h3 class="modal-header" id="modalTitle">Adicionar Link</h3>
+            <form id="linkForm">
+                <div class="form-group">
+                    <label class="form-label">Nome da Copy</label>
+                    <input type="text" class="form-input" id="linkName" placeholder="Ex: Copy A - Oferta Especial" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">URL do Bot (Destino)</label>
+                    <input type="url" class="form-input" id="linkUrl" placeholder="https://t.me/seu_bot" required>
+                </div>
+                <div class="form-group" id="generatedLinkGroup" style="display: none;">
+                    <label class="form-label">Link Gerado (Use este na sua copy)</label>
+                    <div class="generated-link">
+                        <span id="generatedLinkText"></span>
+                        <button type="button" class="copy-btn" onclick="copyGeneratedLink()">Copiar</button>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-cancel" onclick="closeModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-save">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Estado da aplicação
+        let links = [];
+        let editingId = null;
+        let currentGeneratedLink = '';
+
+        // Inicialização
+        function init() {
+            // Carregar dados salvos
+            loadData();
+            
+            // Verificar a URL
+            const path = window.location.pathname;
+            
+            if (path.includes('/r/')) {
+                // É um redirecionamento
+                handleRedirect();
+            } else {
+                // Mostrar dashboard
+                showDashboard();
+            }
+        }
+
+        // Carregar dados do localStorage
+        function loadData() {
+            const saved = localStorage.getItem('redirectLinks');
+            if (saved) {
+                links = JSON.parse(saved);
+            }
+        }
+
+        // Salvar dados no localStorage
+        function saveData() {
+            localStorage.setItem('redirectLinks', JSON.stringify(links));
+        }
+
+        // Lidar com redirecionamento
+        function handleRedirect() {
+            const path = window.location.pathname;
+            const linkId = path.split('/r/')[1];
+            
+            if (!linkId) {
+                window.location.href = '/';
+                return;
+            }
+            
+            // Mostrar loading
+            document.getElementById('redirectPage').classList.add('active');
+            
+            // Encontrar o link
+            const link = links.find(l => l.id === linkId);
+            
+            if (link && link.url) {
+                // Redirecionar após pequeno delay
+                setTimeout(() => {
+                    window.location.href = link.url;
+                }, 300);
+            } else {
+                // Link não encontrado ou inválido
+                alert('Link não encontrado!');
+                window.location.href = '/';
+            }
+        }
+
+        // Mostrar dashboard
+        function showDashboard() {
+            document.getElementById('dashboard').classList.add('active');
+            updateLinksCount();
+            renderLinks();
+        }
+
+        // Atualizar contador de links
+        function updateLinksCount() {
+            document.getElementById('activeLinksCount').textContent = links.length;
+        }
+
+        // Renderizar lista de links
+        function renderLinks() {
+            const grid = document.getElementById('linksGrid');
+            grid.innerHTML = '';
+            
+            if (links.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state">
+                        <p>Nenhum link cadastrado ainda</p>
+                        <p>Clique em "Adicionar Link" para começar</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            links.forEach(link => {
+                const card = document.createElement('div');
+                card.className = 'link-card';
+                
+                const baseUrl = getBaseUrl();
+                const linkUrl = `${baseUrl}/r/${link.id}`;
+                
+                card.innerHTML = `
+                    <div class="link-info">
+                        <div class="link-name">${escapeHtml(link.name)}</div>
+                        <div class="link-url">Destino: ${escapeHtml(link.url)}</div>
+                        <div class="generated-link">
+                            <span>${linkUrl}</span>
+                            <button class="copy-btn" onclick="copyLink('${link.id}')">Copiar</button>
+                        </div>
+                    </div>
+                    <div class="link-actions">
+                        <button class="btn-icon" onclick="editLink('${link.id}')" title="Editar">
+                            ✏️
+                        </button>
+                        <button class="btn-icon delete" onclick="deleteLink('${link.id}')" title="Excluir">
+                            🗑️
+                        </button>
+                    </div>
+                `;
+                
+                grid.appendChild(card);
+            });
+        }
+
+        // Função auxiliar para obter URL base
+        function getBaseUrl() {
+            // Se estiver em localhost, mostrar um placeholder
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                return 'https://seu-projeto.vercel.app';
+            }
+            return window.location.origin;
+        }
+
+        // Escapar HTML para evitar XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Abrir modal para adicionar
+        function openAddModal() {
+            editingId = null;
+            document.getElementById('modalTitle').textContent = 'Adicionar Link';
+            document.getElementById('linkForm').reset();
+            document.getElementById('generatedLinkGroup').style.display = 'none';
+            document.getElementById('modal').classList.add('active');
+        }
+
+        // Editar link existente
+        function editLink(id) {
+            const link = links.find(l => l.id === id);
+            if (!link) return;
+            
+            editingId = id;
+            document.getElementById('modalTitle').textContent = 'Editar Link';
+            document.getElementById('linkName').value = link.name;
+            document.getElementById('linkUrl').value = link.url;
+            
+            // Mostrar link gerado
+            const baseUrl = getBaseUrl();
+            currentGeneratedLink = `${baseUrl}/r/${link.id}`;
+            document.getElementById('generatedLinkText').textContent = currentGeneratedLink;
+            document.getElementById('generatedLinkGroup').style.display = 'block';
+            
+            document.getElementById('modal').classList.add('active');
+        }
+
+        // Fechar modal
+        function closeModal() {
+            document.getElementById('modal').classList.remove('active');
+            document.getElementById('linkForm').reset();
+            editingId = null;
+            currentGeneratedLink = '';
+        }
+
+        // Gerar ID único
+        function generateId() {
+            return Math.random().toString(36).substring(2, 9);
+        }
+
+        // Salvar link (adicionar ou editar)
+        document.getElementById('linkForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('linkName').value.trim();
+            const url = document.getElementById('linkUrl').value.trim();
+            
+            if (!name || !url) return;
+            
+            if (editingId) {
+                // Editar existente
+                const link = links.find(l => l.id === editingId);
+                if (link) {
+                    link.name = name;
+                    link.url = url;
+                }
+            } else {
+                // Criar novo
+                const newLink = {
+                    id: generateId(),
+                    name: name,
+                    url: url
+                };
+                links.push(newLink);
+                
+                // Mostrar link gerado
+                const baseUrl = getBaseUrl();
+                currentGeneratedLink = `${baseUrl}/r/${newLink.id}`;
+                document.getElementById('generatedLinkText').textContent = currentGeneratedLink;
+                document.getElementById('generatedLinkGroup').style.display = 'block';
+                
+                // Aguardar um pouco antes de fechar para user ver o link
+                setTimeout(() => {
+                    saveData();
+                    closeModal();
+                    updateLinksCount();
+                    renderLinks();
+                }, 1500);
+                
+                return;
+            }
+            
+            saveData();
+            closeModal();
+            updateLinksCount();
+            renderLinks();
+        });
+
+        // Deletar link
+        function deleteLink(id) {
+            if (confirm('Tem certeza que deseja excluir este link?')) {
+                links = links.filter(l => l.id !== id);
+                saveData();
+                updateLinksCount();
+                renderLinks();
+            }
+        }
+
+        // Copiar link
+        function copyLink(id) {
+            const baseUrl = getBaseUrl();
+            const link = `${baseUrl}/r/${id}`;
+            copyToClipboard(link, event.target);
+        }
+
+        // Copiar link gerado no modal
+        function copyGeneratedLink() {
+            copyToClipboard(currentGeneratedLink, event.target);
+        }
+
+        // Função auxiliar para copiar texto
+        function copyToClipboard(text, button) {
+            navigator.clipboard.writeText(text).then(() => {
+                const originalText = button.textContent;
+                button.textContent = 'Copiado!';
+                button.style.background = '#25D366';
+                button.style.color = '#000';
+                button.style.borderColor = '#25D366';
+                
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.style.background = '';
+                    button.style.color = '';
+                    button.style.borderColor = '';
+                }, 2000);
+            }).catch(() => {
+                // Fallback para navegadores antigos
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                textArea.style.position = 'fixed';
+                textArea.style.opacity = '0';
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                button.textContent = 'Copiado!';
+                setTimeout(() => {
+                    button.textContent = 'Copiar';
+                }, 2000);
+            });
+        }
+
+        // Fechar modal ao clicar fora
+        document.getElementById('modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        // Inicializar aplicação
+        init();
+    </script>
+</body>
+</html>
